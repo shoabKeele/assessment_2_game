@@ -1,9 +1,9 @@
-# I acknowledge the use of AI for help and generate idea and develop the game. 
+
 """
-Step 2 — Add CLI Human-vs-AI mode (single round) + keep 2-player CLI User can play by human or choose ai mode.
+Step 3 — Add scoreboard + replay to CLI Human-vs-AI.In here I  add multiple time play and also add  scoreboard in AI mode.
 """
 
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 Board = List[str]
 WIN_LINES: Tuple[Tuple[int, int, int], ...] = (
@@ -34,7 +34,7 @@ def empty_squares(b: Board) -> List[int]:
 def full(b: Board) -> bool:
     return all(x != " " for x in b)
 
-# --- AI (simple heuristic) ---
+# --- AI (same heuristic) ---
 def try_win_or_block(b: Board, me: str, opp: str) -> Optional[int]:
     for i in empty_squares(b):
         b[i] = me
@@ -55,71 +55,76 @@ def best_move(b: Board, me: str, opp: str) -> int:
     if move is not None:
         return move
     empties = empty_squares(b)
-    if 4 in empties:      
+    if 4 in empties:
         return 4
-    for i in (0, 2, 6, 8):  
+    for i in (0, 2, 6, 8):
         if i in empties:
             return i
-    return empties[0]       
+    return empties[0]
 
-
+# --- Modes ---
 def cli_two_player() -> None:
     board: Board = [" "] * 9
     turn = "X"
-    print("Two-player Keele University  Tic-Tac-Toe Championship. Enter 1-9.")
+    print("Two-player Keel University Tic-Tac-Toe championship. Enter 1-9.")
     while True:
         draw_board(board)
         move = input(f"Player {turn}, move (1-9): ").strip()
         if not move.isdigit():
-            print("Please enter 1-9.")
-            continue
+            print("Please enter 1-9."); continue
         idx = int(move) - 1
         if idx not in range(9) or board[idx] != " ":
-            print("Invalid move.")
-            continue
+            print("Invalid move."); continue
         board[idx] = turn
-
         w = winner(board)
         if w or full(board):
             draw_board(board)
             print(f"Player {w} wins!" if w else "It's a draw.")
             break
-
         turn = "O" if turn == "X" else "X"
 
-def cli_vs_ai_single() -> None:
-    board: Board = [" "] * 9
+def cli_vs_ai_loop() -> None:
     human, ai = "X", "O"
-    print("Tic-Tac-Toe vs AI (single round).Sponsored by Keele University. You are X.")
-    turn = "X"
+    scores: Dict[str, int] = {"you": 0, "ai": 0, "draws": 0}
+    print("Tic-Tac-Toe vs AI organised by keele university. You are X.")
     while True:
-        draw_board(board)
-        if turn == human:
-            move = input("Your move (1-9): ").strip()
-            if not move.isdigit():
-                print("Please enter 1-9.")
-                continue
-            idx = int(move) - 1
-            if idx not in range(9) or board[idx] != " ":
-                print("Invalid move.")
-                continue
-        else:
-            idx = best_move(board, ai, human)
-            print(f"AI plays {idx + 1}")
-
-        board[idx] = turn
-        w = winner(board)
-        if w or full(board):
+        board: Board = [" "] * 9
+        turn = "X"
+        while True:
             draw_board(board)
-            print("You win!Enjoy. Welcome from Keele University !!" if w == human else ("AI wins!" if w == ai else "It's a draw."))
+            if turn == human:
+                move = input("Your move (1-9): ").strip()
+                if not move.isdigit():
+                    print("Please enter 1-9."); continue
+                idx = int(move) - 1
+                if idx not in range(9) or board[idx] != " ":
+                    print("Invalid move."); continue
+            else:
+                idx = best_move(board, ai, human)
+                print(f"AI plays {idx + 1}")
+            board[idx] = turn
+            w = winner(board)
+            if w or full(board):
+                draw_board(board)
+                if w == human:
+                    print("You win!"); scores["you"] += 1
+                elif w == ai:
+                    print("AI wins!"); scores["ai"] += 1
+                else:
+                    print("It's a draw."); scores["draws"] += 1
+                print(f"Score — You: {scores['you']} | AI: {scores['ai']} | Draws: {scores['draws']}")
+                break
+            turn = "O" if turn == "X" else "X"
+        again = input("Play again? (y/n): ").strip().lower()
+        if again not in ("y", "yes"):
+            print("Thanks for playing!Best wishes from keele university!!")
             break
-        turn = "O" if turn == "X" else "X"
 
 def main() -> None:
-    print("Choose mode:\n  1) CLI 2-player\n  2) CLI vs AI (single round)")
+    print("Choose mode:\n  1) CLI 2-player\n  2) CLI vs AI (scores & replay)")
     choice = input("Enter 1 or 2: ").strip()
     if choice == "2":
-        cli_vs_ai_single()
+        cli_vs_ai_loop()
     else:
         cli_two_player()
 
