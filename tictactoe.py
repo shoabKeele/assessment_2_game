@@ -1,6 +1,6 @@
-
+# I acknowledge the use of AI for help and generate idea and develop the game..
 """
-Step 4 — Add Tkinter GUI (2-player). CLI modes unchanged.In here I add a normal GUI version of this game.
+Step 5 — GUI with Human-vs-AI or Human-vs-Human + scoreboard.This is the final version of the game.
 
 """
 
@@ -62,10 +62,11 @@ def best_move(b: Board, me: str, opp: str) -> int:
             return i
     return empties[0]
 
+
 def cli_two_player() -> None:
     board: Board = [" "] * 9
     turn = "X"
-    print("Two-player Tic-Tac-Toe Championship.Organised by keele university. Enter 1-9.")
+    print("Two-player Tic-Tac-Toe. Enter 1-9.")
     while True:
         draw_board(board)
         move = input(f"Player {turn}, move (1-9): ").strip()
@@ -78,7 +79,7 @@ def cli_two_player() -> None:
         w = winner(board)
         if w or full(board):
             draw_board(board)
-            print(f"Player {w} wins!Best wishes from keele university!!" if w else "It's a draw.Try again !!!")
+            print(f"Player {w} wins!best wishes from keele university!!" if w else "It's a draw.")
             break
         turn = "O" if turn == "X" else "X"
 
@@ -106,21 +107,21 @@ def cli_vs_ai_loop() -> None:
             if w or full(board):
                 draw_board(board)
                 if w == human:
-                    print("You win!Best wishes from keele university!!"); scores["you"] += 1
+                    print("You win!best wishes from Keele University!!"); scores["you"] += 1
                 elif w == ai:
                     print("AI wins!"); scores["ai"] += 1
                 else:
-                    print("It's a draw."); scores["draws"] += 1
+                    print("It's a draw.OH!no!! try again!!"); scores["draws"] += 1
                 print(f"Score — You: {scores['you']} | AI: {scores['ai']} | Draws: {scores['draws']}")
                 break
             turn = "O" if turn == "X" else "X"
         again = input("Play again? (y/n): ").strip().lower()
         if again not in ("y", "yes"):
-            print("Thanks for playing!Keep continue...keele university")
+            print("Thanks for playing!")
             break
 
 
-def gui_two_player() -> None:
+def gui() -> None:
     try:
         import tkinter as tk
     except Exception as e:
@@ -129,57 +130,105 @@ def gui_two_player() -> None:
     class App:
         def __init__(self, root: "tk.Tk") -> None:
             self.root = root
-            self.root.title("Tic-Tac-Toe (2-player)")
+            self.root.title("Tic-Tac-Toe (GUI)")
             self.board: Board = [" "] * 9
             self.turn = "X"
             self.btns: List["tk.Button"] = []
-            self.status = tk.StringVar(value="Player X's turn")
+            self.mode = tk.StringVar(value="PvAI")  # PvAI or PvP
+            self.status = tk.StringVar(value="Your turn (X)")
+            self.scores: Dict[str, int] = {"X": 0, "O": 0, "draws": 0}
             self.build()
+            self.update_score()
 
         def build(self) -> None:
             top = tk.Frame(self.root, padx=8, pady=8); top.pack()
-            grid = tk.Frame(top); grid.grid(row=0, column=0, columnspan=3)
+
+            modef = tk.Frame(top); modef.grid(row=0, column=0, columnspan=3, pady=(0,6))
+            tk.Label(modef, text="Mode:").pack(side=tk.LEFT)
+            tk.Radiobutton(modef, text="Human vs AI", variable=self.mode, value="PvAI",
+                           command=self.reset).pack(side=tk.LEFT, padx=4)
+            tk.Radiobutton(modef, text="Human vs Human", variable=self.mode, value="PvP",
+                           command=self.reset).pack(side=tk.LEFT, padx=4)
+
+            grid = tk.Frame(top); grid.grid(row=1, column=0, columnspan=3)
             for i in range(9):
                 b = tk.Button(grid, text=" ", width=5, height=2, font=("Arial", 20),
                               command=lambda i=i: self.play(i))
                 b.grid(row=i//3, column=i%3, padx=4, pady=4)
                 self.btns.append(b)
-            tk.Button(top, text="New Round", command=self.reset).grid(row=1, column=0, pady=(8,0))
-            tk.Label(top, textvariable=self.status, font=("Arial", 12)).grid(row=2, column=0, columnspan=3, pady=(6,0))
 
-        def play(self, i: int) -> None:
-            if self.board[i] != " ":
-                return
-            self.board[i] = self.turn
-            self.btns[i]["text"] = self.turn
-            w = winner(self.board)
-            if w:
-                self.status.set(f"Player {w} wins!Best of luck from keele uni"); self.disable()
-            elif full(self.board):
-                self.status.set("Draw! Try again!!"); self.disable()
-            else:
-                self.turn = "O" if self.turn == "X" else "X"
-                self.status.set(f"Player {self.turn}'s turn")
+            ctl = tk.Frame(top); ctl.grid(row=2, column=0, columnspan=3, pady=(6,0))
+            tk.Button(ctl, text="New Round", command=self.reset).pack(side=tk.LEFT, padx=4)
+            self.score_lbl = tk.Label(ctl, text="", font=("Arial", 12))
+            self.score_lbl.pack(side=tk.LEFT, padx=10)
+
+            tk.Label(top, textvariable=self.status, font=("Arial", 12)).grid(row=3, column=0, columnspan=3, pady=(6,0))
+
+        def update_score(self) -> None:
+            self.score_lbl.config(text=f"Score — X: {self.scores['X']} | O: {self.scores['O']} | Draws: {self.scores['draws']}")
 
         def reset(self) -> None:
             self.board = [" "] * 9
             for b in self.btns: b.config(text=" ", state="normal")
-            self.turn = "X"; self.status.set("Player X's turn")
+            self.turn = "X"
+            self.status.set("Your turn (X)" if self.mode.get() == "PvAI" else "Player X's turn")
 
-        def disable(self) -> None:
-            for b in self.btns: b.config(state="disabled")
+        def play(self, i: int) -> None:
+            if self.board[i] != " " or self.game_over():
+                return
+            self.place(i, self.turn)
+            if self.end_if_over(): return
+            self.turn = "O" if self.turn == "X" else "X"
+
+            if self.mode.get() == "PvAI" and self.turn == "O":
+                self.root.after(150, self.ai_move)
+            else:
+                self.status.set(f"Player {self.turn}'s turn")
+
+        def ai_move(self) -> None:
+            if self.game_over(): return
+            i = best_move(self.board, "O", "X")
+            self.place(i, "O")
+            self.end_if_over()
+            self.turn = "X"
+            if not self.game_over():
+                self.status.set("Your turn (X)")
+
+        def place(self, i: int, sym: str) -> None:
+            self.board[i] = sym
+            self.btns[i].config(text=sym)
+
+        def end_if_over(self) -> bool:
+            w = winner(self.board)
+            if w or full(self.board):
+                for b in self.btns: b.config(state="disabled")
+                if w:
+                    msg = ("You win!Best wishes from keele university!" if self.mode.get() == "PvAI" and w == "X"
+                           else "AI wins!Best wishes from keele university!" if self.mode.get() == "PvAI" and w == "O"
+                           else f"Player {w} wins!best wishes from Keele University!")
+                    self.status.set(msg)
+                    self.scores[w] += 1
+                else:
+                    self.status.set("Draw!")
+                    self.scores["draws"] += 1
+                self.update_score()
+                return True
+            return False
+
+        def game_over(self) -> bool:
+            return winner(self.board) is not None or full(self.board)
 
     root = tk.Tk()
     App(root)
     root.mainloop()
 
 def main() -> None:
-    print("Choose mode Keele university Tic tac Toe Championship:\n  1) CLI 2-player\n  2) CLI vs AI (scores & replay)\n  3) GUI 2-player")
+    print("Choose mode keele University Tic tac toe championship:\n  1) CLI 2-player\n  2) CLI vs AI (scores & replay)\n  3) GUI (PersonvPerson / PvAI + scoreboard)")
     choice = input("Enter 1/2/3: ").strip()
     if choice == "2":
         cli_vs_ai_loop()
     elif choice == "3":
-        gui_two_player()
+        gui()
     else:
         cli_two_player()
 
@@ -188,6 +237,6 @@ if __name__ == "__main__":
         main()
     finally:
         try:
-            input("\nPress Enter to exit...bye bye!!")
+            input("\nPress Enter to exit...")
         except EOFError:
             pass
